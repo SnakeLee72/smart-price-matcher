@@ -1,0 +1,42 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/smart_price_matcher?schema=public
+      ENABLE_PRICE_PERSISTENCE: "true"
+      ENABLE_CONNECTOR_LOGS: "true"
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MICROSOFT_ENTRA_ID_CLIENT_ID: ${MICROSOFT_ENTRA_ID_CLIENT_ID:-}
+      MICROSOFT_ENTRA_ID_CLIENT_SECRET: ${MICROSOFT_ENTRA_ID_CLIENT_SECRET:-}
+      MICROSOFT_ENTRA_ID_TENANT_ID: ${MICROSOFT_ENTRA_ID_TENANT_ID:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+  postgres:
+    image: postgres:16-alpine
+    container_name: spm-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: smart_price_matcher
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d smart_price_matcher"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+volumes:
+  postgres_data:

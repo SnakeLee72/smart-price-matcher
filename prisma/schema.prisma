@@ -1,0 +1,164 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ProductCondition {
+  BRAND_NEW
+  OPEN_BOX
+  REFURBISHED
+  USED
+}
+
+enum WarrantyType {
+  TAIWAN_OFFICIAL
+  PARALLEL_IMPORT
+  ORIGIN_DOMESTIC
+  NONE
+}
+
+model CanonicalProduct {
+  id               String         @id @default(uuid())
+  brand            String         @db.VarChar(100)
+  model            String         @db.VarChar(100)
+  normalizedName   String         @db.VarChar(255)
+  category         String         @db.VarChar(100)
+  gtin             String?        @db.VarChar(20)
+  ean              String?        @db.VarChar(20)
+  upc              String?        @db.VarChar(20)
+  jan              String?        @db.VarChar(20)
+  mpn              String?        @db.VarChar(100)
+  specifications   Json           @default("{}")
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  offers           ProductOffer[]
+  priceHistories   PriceHistory[]
+
+  @@index([brand, model])
+  @@index([normalizedName])
+}
+
+model ProductOffer {
+  id                     String           @id @default(uuid())
+  canonicalProductId     String?
+  canonicalProduct       CanonicalProduct? @relation(fields: [canonicalProductId], references: [id], onDelete: SetNull)
+  source                 String           @db.VarChar(50)
+  sourceProductId        String           @db.VarChar(100)
+  title                  String           @db.Text
+  normalizedTitle        String           @db.Text
+  brand                  String           @db.VarChar(100)
+  model                  String?          @db.VarChar(100)
+  category               String           @db.VarChar(100)
+  condition              ProductCondition @default(BRAND_NEW)
+  sellerName             String           @db.VarChar(150)
+  sellerRating           Decimal          @db.Decimal(3, 2) @default(5.00)
+  sellerReviewCount      Int              @default(0)
+  imageUrl               String           @db.Text
+  productUrl             String           @db.Text
+  currency               String           @db.VarChar(3) @default("TWD")
+  originalPrice          Decimal          @db.Decimal(12, 2)
+  salePrice              Decimal          @db.Decimal(12, 2)
+  couponDiscount         Decimal          @db.Decimal(12, 2) @default(0.00)
+  domesticShipping       Decimal          @db.Decimal(10, 2) @default(0.00)
+  internationalShipping  Decimal          @db.Decimal(10, 2) @default(0.00)
+  estimatedDuty          Decimal          @db.Decimal(10, 2) @default(0.00)
+  estimatedVat           Decimal          @db.Decimal(10, 2) @default(0.00)
+  serviceFee             Decimal          @db.Decimal(10, 2) @default(0.00)
+  landedCostTwd          Decimal          @db.Decimal(12, 2)
+  isShippingEstimated    Boolean          @default(false)
+  isTaxEstimated         Boolean          @default(false)
+  stockStatus            String           @db.VarChar(50) @default("IN_STOCK")
+  minDeliveryDays        Int              @default(1)
+  maxDeliveryDays        Int              @default(3)
+  shipsToTaiwan          Boolean          @default(true)
+  countryOfOrigin        String           @db.VarChar(10) @default("TW")
+  warrantyType           WarrantyType     @default(TAIWAN_OFFICIAL)
+  warrantyMonths         Int              @default(12)
+  returnPolicyDays       Int              @default(7)
+  isOfficialStore        Boolean          @default(false)
+  isAuthorizedSeller     Boolean          @default(false)
+  rawData                Json             @default("{}")
+  isMockData             Boolean          @default(true)
+  lastUpdatedAt          DateTime         @default(now())
+
+  variants               ProductVariant[]
+  priceHistories         PriceHistory[]
+
+  @@unique([source, sourceProductId])
+  @@index([canonicalProductId])
+  @@index([landedCostTwd])
+}
+
+model ProductVariant {
+  id            String       @id @default(uuid())
+  offerId       String
+  offer         ProductOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  color         String?      @db.VarChar(50)
+  size          String?      @db.VarChar(50)
+  capacity      String?      @db.VarChar(50)
+  voltage       String?      @db.VarChar(50)
+  plugType      String?      @db.VarChar(50)
+  language      String?      @db.VarChar(50)
+  region        String?      @db.VarChar(50)
+  packageType   String?      @db.VarChar(50)
+
+  @@index([offerId])
+}
+
+model PriceHistory {
+  id                 String           @id @default(uuid())
+  offerId            String
+  offer              ProductOffer     @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  canonicalProductId String?
+  canonicalProduct   CanonicalProduct? @relation(fields: [canonicalProductId], references: [id], onDelete: SetNull)
+  price              Decimal          @db.Decimal(12, 2)
+  currency           String           @db.VarChar(3)
+  landedCostTwd      Decimal          @db.Decimal(12, 2)
+  recordedAt         DateTime         @default(now())
+
+  @@index([offerId, recordedAt])
+  @@index([canonicalProductId, recordedAt])
+}
+
+model UserFavorite {
+  id                 String           @id @default(uuid())
+  userId             String
+  offerId            String
+  canonicalProductId String?
+  targetPriceTwd     Decimal?         @db.Decimal(12, 2)
+  notifyOnPriceDrop  Boolean          @default(true)
+  createdAt          DateTime         @default(now())
+
+  @@index([userId])
+  @@unique([userId, offerId])
+}
+
+model PriceAlert {
+  id             String   @id @default(uuid())
+  userId         String
+  offerId        String
+  targetPriceTwd Decimal  @db.Decimal(12, 2)
+  email          String?  @db.VarChar(254)
+  enabled        Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, offerId])
+  @@index([userId])
+}
+
+model ConnectorLog {
+  id           String    @id @default(uuid())
+  source       String    @db.VarChar(50)
+  status       String    @db.VarChar(20)
+  latencyMs    Int
+  errorMessage String?   @db.Text
+  createdAt    DateTime  @default(now())
+
+  @@index([source, createdAt])
+}
