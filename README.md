@@ -1,10 +1,10 @@
-# SmartPrice Matcher
+﻿# SmartPrice Matcher
 
 台日跨來源比價 MVP。**目前兩個資料來源皆為 Mock，所有價格均為模擬資料，並非即時市場報價。**網站不代替使用者下單。
 
 ## 功能與架構
 
-Next.js 14 App Router、React、TypeScript strict mode、Tailwind CSS、Prisma、PostgreSQL。搜尋協調器平行呼叫 Mock Taiwan 與 Mock Japan Connector，進行資料標準化、到手價估算、篩選、排序與規則式推薦。可瀏覽商品、比較最多四項商品、收藏、儲存目標價與查看資料庫中的價格歷史。詳見 [架構與階段規劃](docs/architecture.md)。
+Next.js 16 App Router、React 19、TypeScript strict mode、Tailwind CSS、Prisma、PostgreSQL。搜尋協調器平行呼叫 Mock Taiwan 與 Mock Japan Connector，進行資料標準化、到手價估算、篩選、排序與規則式推薦。可瀏覽商品、比較最多四項商品、收藏、儲存目標價與查看資料庫中的價格歷史。詳見 [架構與階段規劃](docs/architecture.md)。
 
 ## 本機安裝與啟動
 
@@ -100,3 +100,4 @@ npm audit
 第五階段部署步驟與驗收清單見 [部署文件](docs/deployment.md)。目前僅適合 Mock Data 展示與測試，尚未具備真實商品來源或價格通知寄送。
 
 商品連結採網域白名單；Mock Data 的示範網址不提供購買。圖片僅允許 `images.unsplash.com`，經後端代理取得，限制 HTTPS、5 秒、3 MB、圖片格式與重新導向。增加正式 Connector 時，需先在 `src/lib/external-media.ts` 審核並加入商品與圖片網域。管理頁須驗證伺服器端 Token 才載入詳細資訊；Token 只留在頁面記憶體。Connector 開關目前只作用於單一伺服器程序，重啟後會重設。正式部署仍需提供 HTTPS、Secret Manager 與公開 API 速率限制；管理頁尚未整合身分與角色。匯率是固定示範值，稅費僅為估算；最終價格以原始網站結帳頁為準。價格目標可以儲存，但**尚未建立郵件服務或通知工作程序，不會發送降價通知**。Google 與 Microsoft 登入需各自建立 OAuth 憑證並設定回呼網址；設定方式參考 [NextAuth Google](https://next-auth.js.org/providers/google) 與 [Azure AD](https://next-auth.js.org/providers/azure-ad) 文件。
+
